@@ -110,7 +110,7 @@ def initial_csv(output, cols):
     csvfile.close()
 
 
-def merge_yr_csv(folder=os.getcwd(), key='tal'):
+def combine_csvs(folder=os.getcwd(), key='tal'):
     '''
     Combines all the year TAL description csvs into one big pandas df
 
