@@ -89,8 +89,8 @@ def write_yr_csv(yr_base_url, csv_type):
         if csv_type == 'descript':
             get_one_ep_descript(full_ep_link, output)
         if csv_type == 'transcript':
-            trans_link = get_transcript_link(full_ep_link)
-            get_one_ep_transcript(trans_link, output)
+            trans_link, date = get_transcript_link(full_ep_link)
+            get_one_ep_transcript(trans_link, date, output)
     print(f'Finished for {yr_base_url}')
 
 
@@ -186,13 +186,14 @@ def get_one_ep_descript(url, output):
 
 ### Specific Functions for Rescraping Transcripts ####
 
-def get_one_ep_transcript(url, output):
+def get_one_ep_transcript(url, date, output):
     '''
     Scrapes url of transcript of a "This American Life" episode;
     extracts relevant data, cleans transcript of episode
     
     Inputs:
         url: page for an episode's transcript
+        date: date string taken from episode's main page
         output_csv(str): csv to which this episode's info will be appended
     
     Outputs: updated output_csv
@@ -200,7 +201,7 @@ def get_one_ep_transcript(url, output):
     soup = make_soup(url)
     ep_num = url[33:-11]
     ep_name = soup.find('h1').text
-    pub_date = soup.find('meta', property='article:published_time')['content']
+    pub_date = date
     date = re.search('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]',
                      pub_date).group(0)
     acts = soup.find_all('div', class_='act')
@@ -213,7 +214,8 @@ def get_one_ep_transcript(url, output):
             act_text = ''
             for paragraph in act.find_all('div', class_=True):
                 if len(paragraph['class']) > 0: 
-                    if paragraph['class'][0] in ['host', 'subject', 'interviewer']:
+                    if paragraph['class'][0] in ['host', 'subject',
+                                                 'interviewer']:
                         for chunk in paragraph.find_all('p', begin=True):
                             if chunk.text:
                                 act_text += chunk.text
@@ -239,7 +241,8 @@ def get_transcript_link(url):
     for link in transcript_links:
         if 'transcript' in link['href']:
             trans_link = convert_and_check(link['href'])
-    return trans_link
+    pub_date = ep_soup.find('meta', property='article:published_time')['content']
+    return trans_link, pub_date
 
 
 ### ####
