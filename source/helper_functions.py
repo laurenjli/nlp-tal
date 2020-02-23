@@ -55,3 +55,15 @@ def group(row):
         return 10
     else:
         return 11
+
+
+
+# EMBEDDING DIMENSIONS
+
+def normalize(vector):
+    normalized_vector = vector / np.linalg.norm(vector)
+    return normalized_vector
+
+def dimension(model, positives, negatives):
+    diff = sum([normalize(model[x]) for x in positives]) - sum([normalize(model[y]) for y in negatives])
+    return diff
