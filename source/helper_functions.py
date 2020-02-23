@@ -6,6 +6,7 @@ Created: 2/23/2020
 
 # import functions
 import pandas as pd 
+from ast import literal_eval
 
 # FILE LOADING AND MANIPULATION
 
