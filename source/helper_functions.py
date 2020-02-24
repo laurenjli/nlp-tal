@@ -7,6 +7,7 @@ Created: 2/23/2020
 # import functions
 import pandas as pd 
 from ast import literal_eval
+from copy import deepcopy
 
 # FILE LOADING AND MANIPULATION
 
@@ -67,3 +68,41 @@ def normalize(vector):
 def dimension(model, positives, negatives):
     diff = sum([normalize(model[x]) for x in positives]) - sum([normalize(model[y]) for y in negatives])
     return diff
+
+def clean_words(model,word_list):
+    dupe = deepcopy(word_list)
+    for w in dupe:
+        try:
+            model[w]
+        except:
+            dupe.remove(w)
+    return dupe
+
+def makeDF(model, word_list, dim_dict):
+    new_dict = {}
+    for k,v in dim_dict.items():
+        tmp = []
+        for word in word_list:
+            tmp.append(sklearn.metrics.pairwise.cosine_similarity(model[word].reshape(1,-1), v.reshape(1,-1))[0][0])
+        new_dict[k] = tmp
+    df = pd.DataFrame(new_dict, index = word_list)
+    return df
+
+def Coloring(Series):
+    x = Series.values
+    y = x-x.min()
+    z = y/y.max()
+    c = list(plt.cm.rainbow(z))
+    return c
+
+def PlotDimension(ax,df, dim):
+    ax.set_frame_on(False)
+    ax.set_title(dim, fontsize = 20)
+    colors = Coloring(df[dim])
+    for i, word in enumerate(df.index):
+        ax.annotate(word, (0, df[dim][i]), color = colors[i], alpha = 0.6, fontsize = 12)
+    MaxY = df[dim].max()
+    MinY = df[dim].min()
+    plt.ylim(MinY,MaxY)
+    plt.yticks(())
+    plt.xticks(())
