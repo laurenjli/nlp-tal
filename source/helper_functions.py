@@ -8,7 +8,7 @@ Created: 2/23/2020
 import pandas as pd 
 import numpy as np
 from ast import literal_eval
-from copy import deepcopy
+import copy
 
 # FILE LOADING AND MANIPULATION
 
@@ -71,7 +71,7 @@ def dimension(model, positives, negatives):
     return diff
 
 def clean_words(model,word_list):
-    dupe = deepcopy(word_list)
+    dupe = copy.deepcopy(word_list)
     for w in dupe:
         try:
             model[w]
