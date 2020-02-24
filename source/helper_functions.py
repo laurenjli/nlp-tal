@@ -7,6 +7,7 @@ Created: 2/23/2020
 # import functions
 import pandas as pd 
 import numpy as np
+import gensim
 from ast import literal_eval
 import copy
 
