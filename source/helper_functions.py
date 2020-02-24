@@ -232,7 +232,7 @@ def compareModels(df, category, sort = True):
         print("Embedding {}".format(cat), end = '\r')
         subsetDF = df[df[category] == cat]
         #You might want to change the W2V parameters
-        embeddings_raw[cat] = gensim.models.word2vec.Word2Vec(subsetDF['normalized_sents'].sum())
+        embeddings_raw[cat] = gensim.models.word2vec.Word2Vec(subsetDF['no_lemma_normalized_sents'].sum())
     #These are much quicker
     embeddings_aligned = {}
     for catOuter in cats:
