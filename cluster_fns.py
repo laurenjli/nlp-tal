@@ -17,6 +17,7 @@ import sklearn.cluster
 import sklearn.decomposition
 import sklearn.metrics
 import sklearn.mixture
+from sklearn.model_selection import ParameterGrid
 
 import gensim
 import networkx as nx
@@ -40,13 +41,12 @@ def make_vec_vectorizer(df):
     return TFVectorizer, TFVects
 
 
+#### Functions for Flat Clustering ####
+
 def make_train(numClusters, vects, algo):
     if algo == 'km':
         clf = sklearn.cluster.KMeans(n_clusters=numClusters,
                                      init='k-means++', n_jobs=-1)
-    elif algo == 'medoid':
-        clf = KMedoids(n_clusters=numClusters,
-                               metric='cosine')
     elif algo == 'dbscan':
         clf = sklearn.cluster.DBSCAN(metric='cosine', n_jobs=-1)
     elif algo == 'gauss':
@@ -74,14 +74,18 @@ def distinguish_features(Vectorizer, order_centroids, numClusters):
     return terms
 
 
-def pca_and_plot(TFVects, TFVectorizer, clf, clf_name, cluster_num, labels):
+def do_pca(TFVects):
     pca = sklearn.decomposition.PCA(n_components = 2).fit(TFVects.toarray())
     reduced_data = pca.transform(TFVects.toarray())
     components = pca.components_
+    return reduced_data, components
+
+
+def pca_and_plot(TFVects, TFVectorizer, clf, clf_name, cluster_num, labels):
+    reduced_data, components = do_pca(TFVects)
     if clf_name == 'gauss':
         order_centroids = clf.means_.argsort()[:, ::-1]
-    if clf_name in ['km', 'medoid']:
-        print(clf.cluster_centers_array)
+    if clf_name == 'km':
         order_centroids = clf.cluster_centers_.argsort()[:, ::-1]
     keyword_ids = list(set(order_centroids[:,:10].flatten()))
     terms = distinguish_features(TFVectorizer, order_centroids, cluster_num)
@@ -89,6 +93,30 @@ def pca_and_plot(TFVects, TFVectorizer, clf, clf_name, cluster_num, labels):
     x = components[:,keyword_ids][0,:]
     y = components[:,keyword_ids][1,:]
     plot_clusters(reduced_data, cluster_num, labels, words, x, y)
+
+
+def plot_dbscan(TFVects, Vectorizer, labels, words=False):
+    reduced, components = do_pca(TFVects)
+    clrs = sns.color_palette('husl', n_colors=20)
+    color_dict = {}
+    for i, val in enumerate(np.unique(labels)):
+        color_dict[str(val)] = clrs[i]
+    colors_p = [color_dict[str(l)] for l in labels]
+    fig = plt.figure(figsize = (12, 8))
+    ax = fig.add_subplot(111)
+    plt.scatter(reduced[:, 0], reduced[:, 1], c=colors_p, alpha=0.3)
+    if words:
+        keyword_ids = np.where(TFVects.toarray()[:,1][labels] == 0)[0].tolist()
+        terms = Vectorizer.get_feature_names()
+        words = [terms[i] for i in keyword_ids]
+        x = components[:,keyword_ids][0,:]
+        y = components[:,keyword_ids][1,:]
+        for i, word in enumerate(words):
+            ax.annotate(word, (x[i],y[i]))
+
+    plt.xticks(())
+    plt.yticks(())
+    plt.show()
 
 
 def plot_clusters(reduced, cluster_num, labels, words, x, y):
@@ -121,7 +149,7 @@ def plotSilhouette(n_clusters, X, clf_name, TFVects):
         clusterer = sklearn.mixture.GaussianMixture(n_components=n_clusters)
     cluster_labels = clusterer.fit_predict(X)
     
-    silhouette_avg = sklearn.metrics.silhouette_score(X, cluster_labels)
+    silhouette_avg = sklearn.metrics.silhouette_score(X, cluster_labels, metric='cosine')
 
     # Compute the silhouette scores for each sample
     sample_silhouette_values = sklearn.metrics.silhouette_samples(X, cluster_labels)
@@ -199,7 +227,34 @@ def plot_avg_sil(TFVects, clf_name):
         if clf_name == 'gauss':
             clusterer = sklearn.mixture.GaussianMixture(n_components=k)
         cluster_labels = clusterer.fit_predict(X)
-        silhouette_avg = sklearn.metrics.silhouette_score(X, cluster_labels)
+        silhouette_avg = sklearn.metrics.silhouette_score(X, cluster_labels, metric='cosine')
         vals.append(silhouette_avg)
     plt.plot(k_range,vals)
     plt.title('Avg Silhouette Score Over K Values (TAL)')
+
+
+### Functions for Hierarchical Clustering ###
+
+def make_coor_mat(TFVects):
+    CoocMat = TFVects * TFVects.T
+    CoocMat.setdiag(0)
+    linkage_matrix = scipy.cluster.hierarchy.ward(CoocMat.toarray())
+    return CoocMat, linkage_matrix
+
+PARAMS_DICT = {
+    'hier': {'p': [4], 'truncate_mode': ['level'], 'get_leaves': [True]},
+    'flat': {'criterion': ['maxclust', 'distance'], 't': [2, 4, 6]}
+    }
+
+def make_dendos(CoocMat, linkage_matrix, cluster_type='hier', params=PARAMS_DICT):
+    params_to_run = PARAMS_DICT[cluster_type]
+    for param in ParameterGrid(params_to_run):
+        print(cluster_type)
+        print(param)
+        param['Z'] = linkage_matrix
+        if cluster_type == 'flat':
+            d = scipy.cluster.hierarchy.fcluster(**param)
+            print(sklearn.metrics.silhouette_score(CoocMat, d, metric='euclidean'))
+        if cluster_type == 'hier':
+            d = scipy.cluster.hierarchy.dendrogram(**param)
+

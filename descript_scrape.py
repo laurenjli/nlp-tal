@@ -201,9 +201,9 @@ def get_one_ep_transcript(url, date, output):
     soup = make_soup(url)
     ep_num = url[33:-11]
     ep_name = soup.find('h1').text
-    pub_date = date
-    date = re.search('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]',
-                     pub_date).group(0)
+    # pub_date = date
+    # date = re.search('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]',
+    #                  pub_date).group(0)
     acts = soup.find_all('div', class_='act')
     # Get episode host name
     with open(output, 'a') as csvfile:
@@ -219,7 +219,7 @@ def get_one_ep_transcript(url, date, output):
                         for chunk in paragraph.find_all('p', begin=True):
                             if chunk.text:
                                 act_text += chunk.text
-            row_lst = [ep_num, ep_name, pub_date, act_name,
+            row_lst = [ep_num, ep_name, date, act_name,
                        act_text, url]
             outputwriter.writerow(row_lst)
     csvfile.close()
@@ -243,6 +243,21 @@ def get_transcript_link(url):
             trans_link = convert_and_check(link['href'])
     pub_date = ep_soup.find('meta', property='article:published_time')['content']
     return trans_link, pub_date
+
+####
+
+def add_missing(missing_csv='missing_eps.csv'):
+    '''
+    '''
+    output = 'new_eps.csv'
+    cols = ['ep_num', 'ep_title', 'date_published', 'act_name',
+                'text', 'url']
+    initial_csv(output, cols)
+    missing = pd.read_csv(missing_csv)
+    for row in missing.iterrows():
+        date = row[1]['year']
+        url = row[1]['url']
+        get_one_ep_transcript(url, date, output)       
 
 
 ### ####
