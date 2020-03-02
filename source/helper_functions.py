@@ -31,7 +31,8 @@ def agg_text(df, group_col):
     input: df (dataframe), group_col (name of grouping column)
     output: dataframe with text aggregated
     '''
-    return df.groupby(group_col).agg({'text':'sum','tokenized_sents':'sum', 'no_lemma_normalized_sents': 'sum',
+    return df.groupby(group_col).agg({'ep_num': 'max', 'year': 'max', 'url': 'max', 
+                                      'text':'sum','tokenized_sents':'sum', 'no_lemma_normalized_sents': 'sum',
                                       'normalized_sents':'sum','tokenized_text':'sum',
                                       'normalized_tokens':'sum','no_lemma_normalized_tokens':'sum'}).reset_index()
 
