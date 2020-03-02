@@ -18,6 +18,13 @@ converters = {'tokenized_sents': literal_eval,'no_lemma_normalized_sents': liter
                 'normalized_sents':literal_eval,'tokenized_text':literal_eval,
                 'normalized_tokens':literal_eval,'no_lemma_normalized_tokens':literal_eval}
 
+def load_df(file, convert_dict=converters):
+    '''
+    Loads in TAL transcript file & outputs pd df w/ correct types
+    '''
+    return pd.read_csv(file, converters=convert_dict)
+
+
 def agg_text(df, group_col):
     '''
     This function aggregates text in the tal dataframe for all text columns
