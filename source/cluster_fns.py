@@ -120,12 +120,11 @@ def plot_dbscan(TFVects, Vectorizer, labels, words=False):
 
 
 def plot_clusters(reduced, cluster_num, labels, words, x, y):
-    # color map for plots up to 6 clusters
-    # for km labels=km.labels_
-
-    colordict = {'0': 'red','1': 'orange', '2': 'green',
-                 '3': 'blue', '4': 'purple', '5': 'yellow'}
-    colors_p = [colordict[str(l)] for l in labels]
+    clrs = sns.color_palette('husl', n_colors=20)
+    color_dict = {}
+    for i, val in enumerate(np.unique(labels)):
+        color_dict[str(val)] = clrs[i]
+    colors_p = [color_dict[str(l)] for l in labels]
     fig = plt.figure(figsize = (10,6))
     ax = fig.add_subplot(111)
     ax.set_frame_on(False)
@@ -258,3 +257,106 @@ def make_dendos(CoocMat, linkage_matrix, cluster_type='hier', params=PARAMS_DICT
         if cluster_type == 'hier':
             d = scipy.cluster.hierarchy.dendrogram(**param)
 
+
+### TOPIC MODELING FUNCTIONS ###
+
+
+def plot_stacked_heat(tal_lda, ldaDFVis, ldaDFVisNames, t, heatmap=None):
+    N = t
+    ind = np.arange(N)
+    K = tal_lda.num_topics  # N documents, K topics
+    ind = np.arange(N)  # the x-axis locations for the novels
+    width = 0.5  # the width of the bars
+    plots = []
+    height_cumulative = np.zeros(N)
+
+    for k in range(K):
+        color = plt.cm.coolwarm(k/K, 1)
+        if k == 0:
+            p = plt.bar(ind, ldaDFVis[:, k], width, color=color)
+        else:
+            p = plt.bar(ind, ldaDFVis[:, k], width,
+                        bottom=height_cumulative, color=color)
+        height_cumulative += ldaDFVis[:, k]
+        plots.append(p)
+
+
+    plt.ylim((0, 1))  # proportions sum to 1, so the height of the stacked bars is 1
+    plt.ylabel('Topics')
+
+    plt.title('Topics in Press Releases')
+    plt.xticks(ind+width/2, ldaDFVisNames,
+               rotation='vertical')
+
+    plt.yticks(np.arange(0, 1, 10))
+    topic_labels = ['Topic #{}'.format(k) for k in range(K)]
+    plt.legend([p[0] for p in plots], topic_labels, loc='center left',
+               frameon=True,  bbox_to_anchor = (1, .5))
+
+    plt.show()
+    if heatmap:
+        plt.pcolor(ldaDFVis, norm=None, cmap='Blues')
+        plt.yticks(np.arange(ldaDFVis.shape[0])+0.5, ldaDFVisNames);
+        plt.xticks(np.arange(ldaDFVis.shape[1])+0.5, topic_labels);
+
+        # flip the y-axis so the texts are in the order we anticipate (Austen first, then Brontë)
+        plt.gca().invert_yaxis()
+
+        # rotate the ticks on the x-axis
+        plt.xticks(rotation=90)
+
+        # add a legend
+        plt.colorbar(cmap='Blues')
+        plt.tight_layout()  # fixes margins
+        plt.show()
+    word_ranks = make_topic_df(tal_lda)
+    print(word_ranks)
+
+
+def make_lda_model(df, tokens_col, num_tops=10):
+    dictionary, corpus = make_dictionary(ddf, tokens_col)
+
+    # serialize the corpus
+    gensim.corpora.MmCorpus.serialize('tal.mm', corpus)
+    talmm = gensim.corpora.MmCorpus('tal.mm')
+
+    #LDA model
+    tal_lda = gensim.models.ldamodel.LdaModel(corpus=talmm,
+                                              id2word=dictionary,
+                                              num_topics=num_tops,
+                                              alpha='symmetric',
+                                              eta='auto', minimum_probability=0.25)
+    return dictionary, tal_lda
+
+
+def make_dictionary(df, tokens_col):
+    dictionary = gensim.corpora.Dictionary(df[tokens_col])
+    corpus = [dictionary.doc2bow(text) for text in df[tokens_col]]
+    return dictionary, corpus
+
+
+def make_top_probs_df(df, id_col, dictionary, lda, tokens_col):
+    ldaDF = pd.DataFrame({'name' : df[id_col],
+                      'topics' : [lda[dictionary.doc2bow(l)] for \
+                                  l in df[tokens_col]]})
+    #Dict to temporally hold the probabilities
+    topicsProbDict = {i : [0] * len(ldaDF) for i in range(lda.num_topics)}
+
+    #Load them into the dict
+    for index, topicTuples in enumerate(ldaDF['topics']):
+        for topicNum, prob in topicTuples:
+            topicsProbDict[topicNum][index] = prob
+
+    #Update the DataFrame
+    for topicNum in range(lda.num_topics):
+        ldaDF[f'topic_{topicNum}'] = topicsProbDict[topicNum]
+    return ldaDF
+
+        
+def make_topic_df(tal_lda):
+    topicsDict = {}
+    for topicNum in range(tal_lda.num_topics):
+        topicWords = [w for w, p in tal_lda.show_topic(topicNum)]
+        topicsDict[f'Topic_{topicNum}'] = topicWords
+    wordRanksDF = pd.DataFrame(topicsDict)
+    return wordRanksDF

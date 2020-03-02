@@ -25,16 +25,22 @@ def load_df(file, convert_dict=converters):
     return pd.read_csv(file, converters=convert_dict)
 
 
-def agg_text(df, group_col):
+def agg_text(df, group_col, include_ep_info=False):
     '''
     This function aggregates text in the tal dataframe for all text columns
     input: df (dataframe), group_col (name of grouping column)
     output: dataframe with text aggregated
     '''
-    return df.groupby(group_col).agg({'ep_num': 'max', 'year': 'max', 'url': 'max', 
+    if include_ep_info:
+        agg_dict = {'ep_num': 'max', 'year': 'max', 'url': 'max', 
                                       'text':'sum','tokenized_sents':'sum', 'no_lemma_normalized_sents': 'sum',
                                       'normalized_sents':'sum','tokenized_text':'sum',
-                                      'normalized_tokens':'sum','no_lemma_normalized_tokens':'sum'}).reset_index()
+                                      'normalized_tokens':'sum','no_lemma_normalized_tokens':'sum'}
+    else:
+        agg_dict = {'text':'sum','tokenized_sents':'sum', 'no_lemma_normalized_sents': 'sum',
+                                      'normalized_sents':'sum','tokenized_text':'sum',
+                                      'normalized_tokens':'sum','no_lemma_normalized_tokens':'sum'}
+    return df.groupby(group_col).agg(agg_dict).reset_index()
 
 def group(row):
     '''
