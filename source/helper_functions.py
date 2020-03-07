@@ -10,6 +10,8 @@ import numpy as np
 import gensim
 from ast import literal_eval
 import copy
+import nltk
+import seaborn as sns
 
 # FILE LOADING AND MANIPULATION
 
@@ -255,3 +257,52 @@ def compareModels(df, category, sort = True):
         for catInner in cats:
             embeddings_aligned[catOuter].append(smart_procrustes_align_gensim(embeddings_aligned[catOuter][-1], embeddings_raw[catInner]))
     return embeddings_raw, embeddings_aligned
+
+# COLLOCATIONS
+
+def get_text_collocation(df):
+    return nltk.Text(df.no_lemma_normalized_tokens.sum())
+
+def get_concordance(text, word):
+    index = nltk.text.ConcordanceIndex(text)
+    return index.print_concordance(word)
+
+def get_context(text, words):
+    return text.common_contexts(words)
+
+def get_count(text,word):
+    return text.count(word)
+
+def plot_count(full_df, years, word):
+    # counts
+    years = sorted(years)
+    counts = []
+    for y in years:
+        tmp = full_df[full_df.year==y]
+        text = get_text_collocation(tmp)
+        c = get_count(text,word)
+        counts.append(c)
+    sns.lineplot(x=years, y=counts)
+    plt.title('Frequency of {} in TAL'.format(word))
+    plt.show()
+
+def print_collocation(df, wordlist, concordance=False, context=True):
+    text = get_text_collocation(df)
+    
+    for w in wordlist:
+        print('Word: {}'.format(w))
+        if concordance:
+            print('Concordance: ')
+            get_concordance(text, w)
+            print()
+        if context:
+            print('Common context: ')
+            get_context(text, [w])
+        print()
+        print()
+        
+def plot_dispersion(df,wordlist):
+    text = get_text_collocation(df)
+    sns.reset_orig() #Seaborn messes with this plot, disabling it
+    text.dispersion_plot(wordlist)
+    sns.set() #Re-enabling seaborn
