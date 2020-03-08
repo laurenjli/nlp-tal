@@ -12,6 +12,7 @@ from ast import literal_eval
 import copy
 import nltk
 import seaborn as sns
+import spacy
 
 # FILE LOADING AND MANIPULATION
 
@@ -306,3 +307,57 @@ def plot_dispersion(df,wordlist):
     sns.reset_orig() #Seaborn messes with this plot, disabling it
     text.dispersion_plot(wordlist)
     sns.set() #Re-enabling seaborn
+
+def tag_sents_pos(sentences):
+    """
+    function which replicates NLTK pos tagging on sentences.
+    """
+    nlp = spacy.load("en")
+    new_sents = []
+    for sentence in sentences:
+        new_sent = ' '.join(sentence)
+        new_sents.append(new_sent)
+    final_string = ' '.join(new_sents)
+    doc = nlp(final_string)
+    
+    pos_sents = []
+    for sent in doc.sents:
+        pos_sent = []
+        for token in sent:
+            pos_sent.append((token.text, token.tag_))
+        pos_sents.append(pos_sent)
+    
+    return pos_sents
+
+def most_common_adj(df, word):
+    if 'POS_sents' not in df.columns:
+        df['POS_sents'] = df.apply(lambda x: tag_sents_pos(x['tokenized_sents']), axis=1)
+    NTarget = 'JJ'
+    NResults = {}
+    for entry in df['POS_sents']:
+        for sentence in entry:
+            for (ent1, kind1),(ent2,kind2) in zip(sentence[:-1], sentence[1:]):
+                if (kind1,ent2.lower())==(NTarget,word):
+                    if ent1 in NResults.keys():
+                        NResults[ent1] +=1
+                    else:
+                        NResults[ent1] =1
+                else:
+                    continue
+    return NResults
+
+
+## EMBEDDING BIAS
+
+def mk_rep_group_vec(model, wordlist):
+    vecs = []
+    words = []
+    for w in wordlist:
+        try:
+            v = model[w]
+            vecs.append(v)
+            words.append(w)
+        except KeyError:
+            continue
+    print('Caught words: {}'.format(words))
+    return np.mean(vecs, axis=0)
