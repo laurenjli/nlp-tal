@@ -361,3 +361,17 @@ def mk_rep_group_vec(model, wordlist):
             continue
     print('Caught words: {}'.format(words))
     return np.mean(vecs, axis=0)
+
+def l2_norm_diff(model, rep_vec, wordlist):
+    diffs = []
+    words = []
+    for w in wordlist:
+        try:
+            v = model[w]
+            d = norm(rep_vec - v)
+            diffs.append(d)
+            words.append(w)
+        except KeyError:
+            continue
+    print('Caught words: {}'.format(words))
+    return np.mean(diffs, axis=0)
