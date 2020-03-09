@@ -10,6 +10,9 @@ import numpy as np
 import gensim
 from ast import literal_eval
 import copy
+import nltk
+import seaborn as sns
+import spacy
 
 # FILE LOADING AND MANIPULATION
 
@@ -255,3 +258,120 @@ def compareModels(df, category, sort = True):
         for catInner in cats:
             embeddings_aligned[catOuter].append(smart_procrustes_align_gensim(embeddings_aligned[catOuter][-1], embeddings_raw[catInner]))
     return embeddings_raw, embeddings_aligned
+
+# COLLOCATIONS
+
+def get_text_collocation(df):
+    return nltk.Text(df.no_lemma_normalized_tokens.sum())
+
+def get_concordance(text, word):
+    index = nltk.text.ConcordanceIndex(text)
+    return index.print_concordance(word)
+
+def get_context(text, words):
+    return text.common_contexts(words)
+
+def get_count(text,word):
+    return text.count(word)
+
+def plot_count(full_df, years, word):
+    # counts
+    years = sorted(years)
+    counts = []
+    for y in years:
+        tmp = full_df[full_df.year==y]
+        text = get_text_collocation(tmp)
+        c = get_count(text,word)
+        counts.append(c)
+    sns.lineplot(x=years, y=counts)
+    plt.title('Frequency of {} in TAL'.format(word))
+    plt.show()
+
+def print_collocation(df, wordlist, concordance=False, context=True):
+    text = get_text_collocation(df)
+    
+    for w in wordlist:
+        print('Word: {}'.format(w))
+        if concordance:
+            print('Concordance: ')
+            get_concordance(text, w)
+            print()
+        if context:
+            print('Common context: ')
+            get_context(text, [w])
+        print()
+        print()
+        
+def plot_dispersion(df,wordlist):
+    text = get_text_collocation(df)
+    sns.reset_orig() #Seaborn messes with this plot, disabling it
+    text.dispersion_plot(wordlist)
+    sns.set() #Re-enabling seaborn
+
+def tag_sents_pos(sentences):
+    """
+    function which replicates NLTK pos tagging on sentences.
+    """
+    nlp = spacy.load("en")
+    new_sents = []
+    for sentence in sentences:
+        new_sent = ' '.join(sentence)
+        new_sents.append(new_sent)
+    final_string = ' '.join(new_sents)
+    doc = nlp(final_string)
+    
+    pos_sents = []
+    for sent in doc.sents:
+        pos_sent = []
+        for token in sent:
+            pos_sent.append((token.text, token.tag_))
+        pos_sents.append(pos_sent)
+    
+    return pos_sents
+
+def most_common_adj(df, word):
+    if 'POS_sents' not in df.columns:
+        df['POS_sents'] = df.apply(lambda x: tag_sents_pos(x['tokenized_sents']), axis=1)
+    NTarget = 'JJ'
+    NResults = {}
+    for entry in df['POS_sents']:
+        for sentence in entry:
+            for (ent1, kind1),(ent2,kind2) in zip(sentence[:-1], sentence[1:]):
+                if (kind1,ent2.lower())==(NTarget,word):
+                    if ent1 in NResults.keys():
+                        NResults[ent1] +=1
+                    else:
+                        NResults[ent1] =1
+                else:
+                    continue
+    return NResults
+
+
+## EMBEDDING BIAS
+
+def mk_rep_group_vec(model, wordlist):
+    vecs = []
+    words = []
+    for w in wordlist:
+        try:
+            v = model[w]
+            vecs.append(v)
+            words.append(w)
+        except KeyError:
+            continue
+    print('Caught words: {}'.format(words))
+    return np.mean(vecs, axis=0)
+
+def l2_norm_diff(model, rep_vec, wordlist):
+    diffs = []
+    words = []
+    for w in wordlist:
+        try:
+            v = model[w]
+            d = norm(rep_vec - v)
+            diffs.append(d)
+            words.append(w)
+        except KeyError:
+            continue
+    print('Caught words: {}'.format(words))
+    return np.mean(diffs, axis=0)
