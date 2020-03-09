@@ -33,7 +33,7 @@ def make_vec_vectorizer(df):
     #initialize
     TFVectorizer = sklearn.feature_extraction.text.TfidfVectorizer(max_df=0.5,
                                                    max_features=1000,
-                                                   min_df=3,
+                                                   min_df=2,
                                                    stop_words='english',
                                                    norm='l2')
     #train
@@ -81,7 +81,8 @@ def do_pca(TFVects):
     return reduced_data, components
 
 
-def pca_and_plot(TFVects, TFVectorizer, clf, clf_name, cluster_num, labels):
+def pca_and_plot(TFVects, TFVectorizer, clf, clf_name, cluster_num, labels,
+                 print_words=True):
     reduced_data, components = do_pca(TFVects)
     if clf_name == 'gauss':
         order_centroids = clf.means_.argsort()[:, ::-1]
@@ -92,7 +93,7 @@ def pca_and_plot(TFVects, TFVectorizer, clf, clf_name, cluster_num, labels):
     words = [terms[i] for i in keyword_ids]
     x = components[:,keyword_ids][0,:]
     y = components[:,keyword_ids][1,:]
-    plot_clusters(reduced_data, cluster_num, labels, words, x, y)
+    plot_clusters(reduced_data, cluster_num, labels, words, x, y, print_words)
 
 
 def plot_dbscan(TFVects, Vectorizer, labels, words=False):
@@ -119,7 +120,7 @@ def plot_dbscan(TFVects, Vectorizer, labels, words=False):
     plt.show()
 
 
-def plot_clusters(reduced, cluster_num, labels, words, x, y):
+def plot_clusters(reduced, cluster_num, labels, words, x, y, print_words):
     clrs = sns.color_palette('husl', n_colors=20)
     color_dict = {}
     for i, val in enumerate(np.unique(labels)):
@@ -129,8 +130,9 @@ def plot_clusters(reduced, cluster_num, labels, words, x, y):
     ax = fig.add_subplot(111)
     ax.set_frame_on(False)
     plt.scatter(reduced[:, 0], reduced[:, 1], color=colors_p, alpha=0.5)
-    for i, word in enumerate(words):
-        ax.annotate(word, (x[i],y[i]))
+    if print_words:
+        for i, word in enumerate(words):
+            ax.annotate(word, (x[i],y[i]))
     plt.xticks(())
     plt.yticks(())
     plt.title(f'Predicted Clusters\n k = {cluster_num}')
@@ -314,7 +316,7 @@ def plot_stacked_heat(tal_lda, ldaDFVis, ldaDFVisNames, t, heatmap=None):
 
 
 def make_lda_model(df, tokens_col, num_tops=10):
-    dictionary, corpus = make_dictionary(ddf, tokens_col)
+    dictionary, corpus = make_dictionary(df, tokens_col)
 
     # serialize the corpus
     gensim.corpora.MmCorpus.serialize('tal.mm', corpus)
@@ -326,7 +328,7 @@ def make_lda_model(df, tokens_col, num_tops=10):
                                               num_topics=num_tops,
                                               alpha='symmetric',
                                               eta='auto', minimum_probability=0.25)
-    return dictionary, tal_lda
+    return dictionary, tal_lda, corpus
 
 
 def make_dictionary(df, tokens_col):

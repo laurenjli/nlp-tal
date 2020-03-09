@@ -80,6 +80,33 @@ def group(row):
         return 11
 
 
+def split_five_years(tal_df):
+    '''
+    Adds a col to a df with "time period" int.
+    Where time periods are defined as follows:
+        1995-2001 (technically 6 years but so few eps in 1995)
+        2002-2007
+        2008-2013
+        2014-2019
+
+    Inputs:
+        tal_df: a pandas df
+
+    Outputs: an updated pandas df with add'l col of time period
+    '''
+    # Set groups
+    group_1 = list(range(1995, 2002))
+    group_2 = list(range(2002, 2008))
+    group_3 = list(range(2008, 2014))
+    group_4 = list(range(2014, 2020))
+    yr_groups = [group_1, group_2, group_3, group_4]
+    # Initialize col
+    tal_df['five_yr_group'] = np.nan
+    # Update col with group number (0-3)
+    for idx, group in enumerate(yr_groups):
+        tal_df.loc[tal_df['year'].isin(group), 'five_yr_group'] = int(idx)
+    return tal_df
+
 
 # EMBEDDING DIMENSIONS
 
