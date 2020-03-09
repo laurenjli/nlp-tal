@@ -17,6 +17,7 @@ import sklearn
 import matplotlib.pyplot as plt
 import networkx as nx
 
+
 # FILE LOADING AND MANIPULATION
 
 # GLOBAL CONVERTER 
@@ -439,7 +440,7 @@ def l2_norm_diff(model, rep_vec, wordlist):
     for w in wordlist:
         try:
             v = model[w]
-            d = norm(rep_vec - v)
+            d = np.linalg.norm(rep_vec - v)
             diffs.append(d)
             words.append(w)
         except KeyError:
@@ -464,6 +465,23 @@ def plot_bias(pre_dict, post_dict, title, wordlist_dict):
     sns.catplot(x="category", y="bias", hue="type", data=df,
                 height=6, kind="bar", palette="muted")
     plt.title(title)
+
+# most similar words
+def agg_sim_words(models,periods,wordlist):
+    final = []
+    for model in models:
+        tmp = {}
+        for w in wordlist:
+            try:
+                x = model.most_similar(w)
+                tmp[w] = x
+            except KeyError:
+                tmp[w] = 'NA'
+        final.append(tmp)
+        
+    new = pd.DataFrame(final)
+    new['period'] = periods
+    return new
 
 ## WORD NETWORK
 
