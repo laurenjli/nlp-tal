@@ -13,6 +13,8 @@ import copy
 import nltk
 import seaborn as sns
 import spacy
+import sklearn
+import matplotlib.pyplot as plt
 
 # FILE LOADING AND MANIPULATION
 
@@ -359,7 +361,7 @@ def mk_rep_group_vec(model, wordlist):
             words.append(w)
         except KeyError:
             continue
-    print('Caught words: {}'.format(words))
+    #print('Caught words: {}'.format(words))
     return np.mean(vecs, axis=0)
 
 def l2_norm_diff(model, rep_vec, wordlist):
@@ -373,5 +375,23 @@ def l2_norm_diff(model, rep_vec, wordlist):
             words.append(w)
         except KeyError:
             continue
-    print('Caught words: {}'.format(words))
+    #print('Caught words: {}'.format(words))
     return np.mean(diffs, axis=0)
+
+def plot_bias(pre_dict, post_dict, title, wordlist_dict):
+    diffs = []
+    for k,v in wordlist_dict.items():
+        tmp = {}
+        tmp['category'] = k
+        tmp['type'] = 'before event'
+        tmp['bias'] = l2_norm_diff(pre_dict['model'], pre_dict['compare_vec'], v) - l2_norm_diff(pre_dict['model'], pre_dict['group_vec'], v)
+        diffs.append(tmp)
+        tmp = {}
+        tmp['category'] = k
+        tmp['type'] = 'after event'
+        tmp['bias'] = l2_norm_diff(post_dict['model'], post_dict['compare_vec'], v) -l2_norm_diff(post_dict['model'], post_dict['group_vec'], v)
+        diffs.append(tmp)
+    df = pd.DataFrame(diffs)
+    sns.catplot(x="category", y="bias", hue="type", data=df,
+                height=6, kind="bar", palette="muted")
+    plt.title(title)
