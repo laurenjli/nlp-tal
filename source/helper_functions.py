@@ -15,6 +15,8 @@ import seaborn as sns
 import spacy
 import sklearn
 import matplotlib.pyplot as plt
+import networkx as nx
+
 
 # FILE LOADING AND MANIPULATION
 
@@ -298,7 +300,8 @@ def get_concordance(text, word):
     return index.print_concordance(word)
 
 def get_context(text, words):
-    return text.common_contexts(words)
+    index = nltk.text.ContextIndex(text)
+    return index.common_contexts(words)
 
 def get_count(text,word):
     return text.count(word)
@@ -330,6 +333,20 @@ def print_collocation(df, wordlist, concordance=False, context=True):
             get_context(text, [w])
         print()
         print()
+
+def agg_contexts(dfs,years,wordlist):
+    final = []
+    for df in dfs:
+        text = get_text_collocation(df)
+        tmp = {}
+        for w in wordlist:
+            x = list(get_context(text, [w]).keys())
+            tmp[w] = x
+        final.append(tmp)
+        
+    new = pd.DataFrame(final)
+    new['year'] = years
+    return new
         
 def plot_dispersion(df,wordlist):
     text = get_text_collocation(df)
@@ -375,6 +392,32 @@ def most_common_adj(df, word):
                     continue
     return NResults
 
+def make_verb_dict(verb, df):
+    verb_dict = {}
+    nlp = spacy.load("en")
+    for index, row in df.iterrows():
+        year = str(row['year'])
+        if year not in verb_dict.keys():
+            verb_dict[year] = ([],[])
+        text = ' '.join(row['tokenized_text'])
+        doc = nlp(text)
+        for chunk in doc.noun_chunks:
+            subject = 0
+            object_ = 0
+            # if the verb or the root of the sentence is the word
+            if chunk.root.head.text == verb:
+                # we find the subjects and objects around the word,
+                # and if it does exist, add it to the tuple
+                if chunk.root.dep_ == 'nsubj':
+                    subject = chunk.root.text
+                if chunk.root.dep_ == 'dobj':
+                    object_ = chunk.root.text
+                if subject is not 0:
+                    verb_dict[year][0].append(subject)
+                if object_ is not 0:
+                    verb_dict[year][1].append(object_)
+    return verb_dict
+
 
 ## EMBEDDING BIAS
 
@@ -397,7 +440,7 @@ def l2_norm_diff(model, rep_vec, wordlist):
     for w in wordlist:
         try:
             v = model[w]
-            d = norm(rep_vec - v)
+            d = np.linalg.norm(rep_vec - v)
             diffs.append(d)
             words.append(w)
         except KeyError:
@@ -422,3 +465,71 @@ def plot_bias(pre_dict, post_dict, title, wordlist_dict):
     sns.catplot(x="category", y="bias", hue="type", data=df,
                 height=6, kind="bar", palette="muted")
     plt.title(title)
+
+# most similar words
+def agg_sim_words(models,periods,wordlist):
+    final = []
+    for model in models:
+        tmp = {}
+        for w in wordlist:
+            try:
+                x = model.most_similar(w)
+                tmp[w] = x
+            except KeyError:
+                tmp[w] = 'NA'
+        final.append(tmp)
+        
+    new = pd.DataFrame(final)
+    new['period'] = periods
+    return new
+
+## WORD NETWORK
+
+def wordCooccurrence(sentences, makeMatrix = False):
+    words = set()
+    for sent in sentences:
+        words |= set(sent)
+    wordLst = list(words)
+    wordIndices = {w: i for i, w in enumerate(wordLst)}
+    wordCoCounts = {}
+    #consider a sparse matrix if memory becomes an issue
+    coOcMat = np.zeros((len(wordIndices), len(wordIndices)))
+    for sent in sentences:
+        for i, word1 in enumerate(sent):
+            word1Index = wordIndices[word1]
+            for word2 in sent[i + 1:]:
+                coOcMat[word1Index][wordIndices[word2]] += 1
+    if makeMatrix:
+        return coOcMat, wordLst
+    else:
+        coOcMat = coOcMat.T + coOcMat
+        g = nx.convert_matrix.from_numpy_matrix(coOcMat)
+        g = nx.relabel_nodes(g, {i : w for i, w in enumerate(wordLst)})
+        return g
+    
+def connected_component_subgraphs(G):
+    for c in nx.connected_components(G):
+        yield G.subgraph(c)
+        
+def graph_nx_word(df, colname, edge_weight, word):
+    g = wordCooccurrence(df[colname].sum())
+    g.remove_edges_from([(n1, n2) for n1, n2, d in 
+                     g.edges(data = True) if d['weight'] <= edge_weight])
+
+    g.remove_nodes_from(list(nx.isolates(g)))
+    giant = max(connected_component_subgraphs(g), key=len) # keep just the giant connected component
+    # get neighbors of word
+    neighbors = giant.neighbors(word)
+    g_word = giant.subgraph(neighbors)
+    layout = nx.spring_layout(g_word, weight='weight', iterations= 100, k = .3)
+    fig, ax = plt.subplots(figsize = (10,10))
+    maxWeight = max((d['weight'] for n1, n2, d in g_word.edges(data = True)))
+    minWeight = min((d['weight'] for n1, n2, d in g_word.edges(data = True)))
+    nx.draw(g_word, ax = ax, pos = layout, labels = {n:n for n in g_word.nodes()},
+            width=[(d['weight'] - minWeight + .7) / maxWeight for n1, n2, d in g_word.edges(data = True)], 
+            #width =0.3,
+            alpha = 1, 
+            font_size = 16,
+            font_color = 'xkcd:dark grey',
+            edge_color = 'black',
+            cmap = plt.get_cmap('plasma'))
