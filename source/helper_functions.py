@@ -506,11 +506,11 @@ def wordCooccurrence(sentences, makeMatrix = False):
         g = nx.convert_matrix.from_numpy_matrix(coOcMat)
         g = nx.relabel_nodes(g, {i : w for i, w in enumerate(wordLst)})
         return g
-    
+
 def connected_component_subgraphs(G):
     for c in nx.connected_components(G):
         yield G.subgraph(c)
-        
+
 def graph_nx_word(df, colname, edge_weight, word):
     g = wordCooccurrence(df[colname].sum())
     g.remove_edges_from([(n1, n2) for n1, n2, d in 
@@ -526,10 +526,10 @@ def graph_nx_word(df, colname, edge_weight, word):
     maxWeight = max((d['weight'] for n1, n2, d in g_word.edges(data = True)))
     minWeight = min((d['weight'] for n1, n2, d in g_word.edges(data = True)))
     nx.draw(g_word, ax = ax, pos = layout, labels = {n:n for n in g_word.nodes()},
-            width=[(d['weight'] - minWeight + .7) / maxWeight for n1, n2, d in g_word.edges(data = True)], 
-            #width =0.3,
-            alpha = 1, 
-            font_size = 16,
-            font_color = 'xkcd:dark grey',
+            width = [(d['weight'] - minWeight + .7) / maxWeight for n1, n2, d in \
+                    g_word.edges(data = True)], 
+            alpha = 0.75, 
+            font_size = 12,
+            font_color = 'black',
             edge_color = 'black',
-            cmap = plt.get_cmap('plasma'))
+            cmap = plt.get_cmap('viridis'))
