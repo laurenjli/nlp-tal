@@ -10,6 +10,7 @@ import scipy
 from sklearn_extra.cluster import KMedoids
 import sklearn
 import sklearn.feature_extraction.text
+from sklearn.feature_extraction.text import CountVectorizer
 import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.datasets
@@ -27,6 +28,10 @@ from gensim.matutils import kullback_leibler
 import matplotlib.pyplot as plt
 import matplotlib.cm
 import seaborn as sns
+
+
+def dropMissing(wordLst, vocab):
+    return [w for w in wordLst if w in vocab]
 
 
 def make_vec_vectorizer(df):
@@ -315,20 +320,22 @@ def plot_stacked_heat(tal_lda, ldaDFVis, ldaDFVisNames, t, heatmap=None):
     print(word_ranks)
 
 
-def make_lda_model(df, tokens_col, num_tops=10):
-    dictionary, corpus = make_dictionary(df, tokens_col)
-
-    # serialize the corpus
-    gensim.corpora.MmCorpus.serialize('tal.mm', corpus)
-    talmm = gensim.corpora.MmCorpus('tal.mm')
-
-    #LDA model
-    tal_lda = gensim.models.ldamodel.LdaModel(corpus=talmm,
-                                              id2word=dictionary,
-                                              num_topics=num_tops,
-                                              alpha='symmetric',
-                                              eta='auto', minimum_probability=0.25)
+def make_lda_model(df, tokens_col, num_tops=10, fil_ex=True):
+    dictionary, bow_corpus = make_dictionary(df, tokens_col)
+    if fil_ex:
+        dictionary.filter_extremes(no_below=10, keep_n=100000)
+    tal_lda = gensim.models.LdaMulticore(bow_corpus, num_topics=num_tops,
+                                            id2word=dictionary, passes=5, workers=4)
     return dictionary, tal_lda, corpus
+
+
+def topic_distribution(df, tokens_col, lda_model, fil_ex=True):
+    dictionary, corpus = make_dictionary(df, tokens_col)
+    if fil_ex:
+        dictionary.filter_extremes(no_below=10, keep_n=100000)
+    bow_corpus = [dictionary.doc2bow(doc) for doc in df[tokens_col]]
+    output = list(lda_model[bow_corpus])
+    return output
 
 
 def make_dictionary(df, tokens_col):
@@ -362,3 +369,33 @@ def make_topic_df(tal_lda):
         topicsDict[f'Topic_{topicNum}'] = topicWords
     wordRanksDF = pd.DataFrame(topicsDict)
     return wordRanksDF
+
+
+def topic_distribution(df, col, model):
+    corpora = df[col].apply(lambda x: gensim.matutils.Sparse2Corpus(vect.transform([x]), documents_columns=False))
+    output = corpora.apply(lambda x: list(model[x]))
+    return output.to_dict()
+
+
+def new_model_fn(df, col, num_tops=10, min_docs=0.2, max_docs=0.8):
+    vect = CountVectorizer(min_df=min_docs, max_df=max_docs, stop_words='english')
+    # Fit and transform
+    X = vect.fit_transform(df[col])
+
+    # Convert sparse matrix to gensim corpus.
+    corpus = gensim.matutils.Sparse2Corpus(X, documents_columns=False)
+
+    # Mapping from word IDs to words (To be used in LdaModel's id2word parameter)
+    id_map = dict((v, k) for k, v in vect.vocabulary_.items())
+
+    # Use the gensim.models.ldamodel.LdaModel constructor to estimate
+    # LDA model parameters on the corpus, and save to the variable `ldamodel`
+
+    ldamodel = gensim.models.ldamulticore.LdaMulticore(corpus, num_topics=num_tops,
+                                            id2word=id_map, passes=5, workers=4,
+                                            random_state=34)
+
+    output = ldamodel.print_topics(num_tops, 3)
+    print(min_docs, max_docs)
+    print(output)
+    return ldamodel, output
