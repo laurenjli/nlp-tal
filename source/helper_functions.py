@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import gensim
 from ast import literal_eval
+import re
 import copy
 import nltk
 import seaborn as sns
@@ -107,6 +108,26 @@ def split_five_years(tal_df):
     for idx, group in enumerate(yr_groups):
         tal_df.loc[tal_df['year'].isin(group), 'five_yr_group'] = int(idx)
     return tal_df
+
+def clean_raw_text(raw_text, df, year):
+    '''
+    Using this to clean the COCA news texts
+    '''
+    articles = raw_text.split("##")
+    for article in articles:
+        if len(article) > 7:
+            id_num = article[:7]
+            text = article[7:]
+            clean_text = replace_text(text)
+            df.loc[len(df)] = [year, id_num, clean_text]
+
+
+def replace_text(text):
+    return text.replace("<p>", "").replace("\'m", "'m").replace("\'ll", "'ll"). \
+                      replace("\'re", "'re").replace("\'s", "'s"). \
+                      replace("\'re", "'re").replace("n\'t", "n't"). \
+                      replace("\'ve", "'ve").replace("\'d", "'d"). \
+                      replace("@ ", "")
 
 
 # EMBEDDING DIMENSIONS
