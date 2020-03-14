@@ -385,6 +385,25 @@ def agg_contexts(dfs,years,wordlist):
     new = pd.DataFrame(final)
     new['year'] = years
     return new
+
+def count_contexts(dfs,years, wordlist):
+    final = []
+    for df in dfs:
+        text = get_text_collocation(df)
+        tmp = {}
+        for w in wordlist:
+            x = list(get_context(text, [w]).keys())
+            tmp[w] = {}
+            for i in x:
+                first = i[0]
+                second = i[1]
+                tmp[w][first] = tmp[w].get(first,0) + 1
+                tmp[w][second] = tmp[w].get(second,0) + 1
+        final.append(tmp)
+        
+    new = pd.DataFrame(final)
+    new['year'] = years
+    return new
         
 def plot_dispersion(df,wordlist):
     text = get_text_collocation(df)
