@@ -17,6 +17,7 @@ import spacy
 import sklearn
 import matplotlib.pyplot as plt
 import networkx as nx
+from collections import OrderedDict
 
 
 # FILE LOADING AND MANIPULATION
@@ -340,6 +341,23 @@ def plot_count(full_df, years, word):
     plt.title('Frequency of {} in TAL'.format(word))
     plt.show()
 
+def plot_two_count(full_df, years, word, word2):
+    # counts
+    years = sorted(years)
+    counts = []
+    counts2=[]
+    for y in years:
+        tmp = full_df[full_df.year==y]
+        text = get_text_collocation(tmp)
+        c = get_count(text,word)
+        c2 = get_count(text,word2)
+        counts2.append(c2)
+        counts.append(c)
+    sns.lineplot(x=years, y=counts, label = word)
+    sns.lineplot(x=years, y=counts2, label=word2)
+    plt.title('Frequency of "{}" and "{}" in TAL'.format(word,word2))
+    plt.show()
+
 def print_collocation(df, wordlist, concordance=False, context=True):
     text = get_text_collocation(df)
     
@@ -363,6 +381,26 @@ def agg_contexts(dfs, years, wordlist):
         for w in wordlist:
             x = list(get_context(text, [w]).keys())
             tmp[w] = x
+        final.append(tmp)
+        
+    new = pd.DataFrame(final)
+    new['year'] = years
+    return new
+
+def count_contexts(dfs,years, wordlist):
+    final = []
+    for df in dfs:
+        text = get_text_collocation(df)
+        tmp = {}
+        for w in wordlist:
+            x = list(get_context(text, [w]).keys())
+            tmp[w] = {}
+            for i in x:
+                first = i[0]
+                second = i[1]
+                tmp[w][first] = tmp[w].get(first,0) + 1
+                tmp[w][second] = tmp[w].get(second,0) + 1
+            tmp[w] = OrderedDict(sorted(tmp[w].items(), key=lambda x: x[1], reverse=True))
         final.append(tmp)
         
     new = pd.DataFrame(final)
