@@ -17,6 +17,7 @@ import spacy
 import sklearn
 import matplotlib.pyplot as plt
 import networkx as nx
+from collections import OrderedDict
 
 
 # FILE LOADING AND MANIPULATION
@@ -399,6 +400,7 @@ def count_contexts(dfs,years, wordlist):
                 second = i[1]
                 tmp[w][first] = tmp[w].get(first,0) + 1
                 tmp[w][second] = tmp[w].get(second,0) + 1
+            tmp[w] = OrderedDict(sorted(tmp[w].items(), key=lambda x: x[1], reverse=True))
         final.append(tmp)
         
     new = pd.DataFrame(final)
