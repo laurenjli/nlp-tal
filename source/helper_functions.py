@@ -355,7 +355,7 @@ def print_collocation(df, wordlist, concordance=False, context=True):
         print()
         print()
 
-def agg_contexts(dfs,years,wordlist):
+def agg_contexts(dfs, years, wordlist):
     final = []
     for df in dfs:
         text = get_text_collocation(df)
@@ -553,4 +553,4 @@ def graph_nx_word(df, colname, edge_weight, word):
             font_size = 12,
             font_color = 'black',
             edge_color = 'black',
-            cmap = plt.get_cmap('viridis'))
+            node_color = "xkcd:light red")
