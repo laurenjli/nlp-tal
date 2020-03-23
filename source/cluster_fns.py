@@ -438,7 +438,6 @@ def new_model_fn(df, col, num_tops=10, min_docs=0.2, max_docs=0.8):
     # Convert sparse matrix to gensim corpus.
     corpus = gensim.matutils.Sparse2Corpus(X, documents_columns=False)
     # Mapping from word IDs to words
-    #(To be used in LdaModel's id2word parameter)
     id_map = dict((v, k) for k, v in vect.vocabulary_.items())
     # Use the gensim.models.ldamodel.LdaModel constructor to estimate
     # LDA model parameters on the corpus, and save to the variable `ldamodel`
