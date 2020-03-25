@@ -1,5 +1,5 @@
 '''
-This file contains helper functions for our work in the main jupyter notebook files.
+This file contains helper functions for our events analysis.
 
 Created: 2/23/2020
 '''
