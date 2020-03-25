@@ -33,4 +33,4 @@ In order to conduct our analysis, we created a number of functions employed acro
 
 - source/cluster_fns.py: Functions related to clustering and topic modeling
 - source/descript_scrape.py: Functions to Scrape Descriptions/Prologues of "This American Life" Episodes
-- helper_functions.py: Functions used in our event analyses
+- source/helper_functions.py: Functions used in our event analyses
