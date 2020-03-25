@@ -406,6 +406,20 @@ def count_contexts(dfs,years, wordlist):
     new = pd.DataFrame(final)
     new['year'] = years
     return new
+
+def order_verb_dict(verb_dict):
+    results_dict = {}
+    for key in verb_dict.keys():
+        subjs_dict = {}
+        objs_dict = {}
+        subjs = verb_dict[key][0]
+        for sub in set(subjs):
+            subjs_dict[sub] = subjs.count(sub)
+        objs = verb_dict[key][1]
+        for obj in set(objs):
+            objs_dict[obj] = objs.count(obj)
+        results_dict[key] = [subjs_dict, objs_dict]
+    return results_dict
         
 def plot_dispersion(df,wordlist):
     text = get_text_collocation(df)
