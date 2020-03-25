@@ -4,7 +4,7 @@ We present a novel approach to understanding public sentiment regarding major ev
 By analyzing a popular American podcast, "This American Life," which mixes journalism and narratives regarding public and private events, we are able to garner American public opinion on important cultural events that are unseen in previous analysis of other corpora like newspaper articles and books.
 At a high level, we find that the topics covered by "This American Life" remain stable over time.
 However, when we examine language more closely around specific events, we can understand the way the changes in which Americans understand and internalize these topics.
-In this paper, we find and interpret shifts in language in "This American Life" transcripts before and after major events in the United States of America.
+In our analysis, we find and interpret shifts in language in "This American Life" transcripts before and after major events in the United States of America.
 
 # Corpus
 
