@@ -1,6 +1,11 @@
 '''
 This file contains helper functions for our events analysis.
 
+Much of the code was adapated from assignments from the Content-Analysis-2020 repository.
+(https://github.com/Computational-Content-Analysis-2020/Content-Analysis-2020)
+
+Thank you to Professor James Evans, Bhargav Srinivasa Desikan, and Hyunku Kwon for their work on this class!
+
 Created: 2/23/2020
 '''
 
